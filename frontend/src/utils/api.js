@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // バックエンドのURLを基本設定とするaxiosインスタンスを作成
 const api = axios.create({
-  baseURL: 'https://jishushitsu-api.onrender.com/api', // バックエンドのURL
+  baseURL: 'https://online-jishushitsu.onrender.com/api', // バックエンドのURL
   headers: {
     'Content-Type': 'application/json',
   },
