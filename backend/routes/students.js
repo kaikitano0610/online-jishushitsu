@@ -5,7 +5,7 @@ const User = require('../models/User');
 const Report = require('../models/Report');
 
 // @route   GET api/students
-// @desc    全生徒のリストを取得
+// @desc    全生徒のリストを取得（未読レポート情報付き）
 // @access  Private (Mentor)
 router.get('/', auth, async (req, res) => {
   try {
@@ -14,14 +14,12 @@ router.get('/', auth, async (req, res) => {
       return res.status(403).json({ msg: 'アクセス権がありません' });
     }
     
-    // 全ての生徒を取得
-    let students = await User.find({ role: 'student' }).select('-pin').lean(); // .lean()を追加
+    let students = await User.find({ role: 'student' }).select('-pin').lean();
 
-    // コメントが空のレポートを持つ生徒IDのリストを取得
-    const uncommentedReports = await Report.find({ mentorComment: '' }).distinct('studentId');
+    // ✅ 修正箇所: 未コメントのレポートを「コメントがnullまたは空文字列」として検索します
+    const uncommentedReports = await Report.find({ mentorComment: { $in: [null, ''] } }).distinct('studentId');
     const uncommentedStudentIds = new Set(uncommentedReports.map(id => id.toString()));
 
-    // 各生徒に未読フラグを立てる
     students = students.map(student => ({
         ...student,
         hasUncommentedReports: uncommentedStudentIds.has(student._id.toString())
@@ -34,8 +32,9 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// @route   POST api/students/:studentId/points
-// @desc    指定した生徒にポイントを1付与
+
+// @route   PUT api/students/:studentId/points
+// @desc    指定した生徒のポイントを指定数だけ増減させる
 // @access  Private (Mentor)
 router.put('/:studentId/points', auth, async (req, res) => {
     try {
@@ -51,7 +50,7 @@ router.put('/:studentId/points', auth, async (req, res) => {
 
         const student = await User.findByIdAndUpdate(
             req.params.studentId,
-            { $inc: { points: points } }, // pointsを指定された数だけ増減
+            { $inc: { points: points } },
             { new: true }
         ).select('-pin');
 
