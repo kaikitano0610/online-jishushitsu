@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // useCallback をインポート
 import { useParams } from 'react-router-dom';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
@@ -6,7 +6,7 @@ import styled from 'styled-components';
 import api from '../utils/api';
 import CommentModal from '../components/CommentModal';
 
-// StudentDashboardからスタイルを拝借
+// ... （styled-componentsの部分は変更ありません）
 const CalendarWrapper = styled.div`
   .react-calendar { width: 100%; border: 2px solid #333; font-family: 'DotGothic16', sans-serif; }
   .react-calendar__tile { height: 100px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; }
@@ -19,26 +19,24 @@ const ReportMarker = styled.div`
 `;
 
 const StudentReportPage = () => {
-    const { studentId } = useParams(); // URLから生徒IDを取得
-    const [student, setStudent] = useState(null);
+    const { studentId } = useParams();
+    // const [student, setStudent] = useState(null); // 警告の原因だったため削除
     const [reports, setReports] = useState([]);
     const [selectedReport, setSelectedReport] = useState(null);
 
-    const fetchStudentData = async () => {
+    // useCallbackを使って関数を定義し、useEffectの依存関係を修正
+    const fetchStudentData = useCallback(async () => {
         try {
-            // このAPIはまだ作っていないので、今回はレポートのみ取得します。
-            // 必要であれば、/api/students/:studentId のようなAPIを作ると良いでしょう。
             const reportRes = await api.get(`/reports/student/${studentId}`);
             setReports(reportRes.data);
-
         } catch (err) {
             console.error(err);
         }
-    };
+    }, [studentId]); // studentIdが変更された時だけ関数を再生成
 
     useEffect(() => {
         fetchStudentData();
-    }, [studentId]);
+    }, [fetchStudentData]); // 依存関係にfetchStudentDataを追加
 
     const getReportForDate = (d) => {
         return reports.find(report => 
@@ -48,7 +46,7 @@ const StudentReportPage = () => {
 
     const handleDateClick = (clickedDate) => {
         const report = getReportForDate(clickedDate);
-        if (report) { // レポートが提出されている日だけモーダルを開く
+        if (report) {
             setSelectedReport(report);
         }
     };
